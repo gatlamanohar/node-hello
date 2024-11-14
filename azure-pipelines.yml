@@ -90,5 +90,4 @@ steps:
       npm install -g pm2
       pm2 start npm --name "app" -- start
       pm2 save
-EOF
-  displayName: 'SSH into VM and Deploy Application'
+EOF  displayName: 'SSH into VM and Deploy Application'
