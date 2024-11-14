@@ -74,9 +74,12 @@ steps:
     sshpass -p "$VM_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
     sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
-      cd /home/$VM_USERNAME/node-hello &&
+      sudo apt update && 
+      sudo apt upgrade &&
+      sudo apt install -y curl &&
       curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&
-      sudo apt install -y nodejs npm &&
+      sudo apt install -y nodejs &&
+      cd /home/$VM_USERNAME/node-hello &&
       npm install &&
       npm install -g pm2 &&
       pm2 start npm --name 'app' -- start &&

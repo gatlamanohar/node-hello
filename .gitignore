@@ -1,5 +1,7 @@
-.DS_Store
-.node_modules
+# Node artifact files
+node_modules/
+dist/
+android
 # Local .terraform directories
 **/.terraform/*
 
