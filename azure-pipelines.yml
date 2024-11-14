@@ -80,8 +80,9 @@ steps:
       sudo apt install -y nodejs &&
       cd /home/$VM_USERNAME/node-hello &&
       npm install &&
-      npm install -g pm2 &&
+      sudo npm install -g pm2 &&
       pm2 start npm --name 'app' -- start &&
-      pm2 save
+      pm2 save && 
+      pm2 ls
     "
   displayName: 'SSH into VM and Deploy Application'
