@@ -77,10 +77,10 @@ steps:
     sshpass -p "$VM_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
     # SSH into the VM and set up the application
-    sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" <<EOF
+    sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" << 'EOF'
       # Navigate to the application directory
       cd /home/$VM_USERNAME/node-hello
-      
+
       # Ensure Node.js is installed
       curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
       sudo apt install -y nodejs npm
