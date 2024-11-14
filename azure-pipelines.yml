@@ -1,0 +1,89 @@
+trigger: none
+
+
+
+pool:
+  name: 'Default'  # Use the Default agent pool for your self-hosted agent
+  demands:
+    - agent.os -equals linux
+    - agent.name -equals quadz-customer-prod-vm  # Ensure the correct agent name is specified
+
+variables:
+  - group: TerraformSecrets  # Reference to your variable group containing sensitive data like passwords
+
+steps:
+# Step 1: Change working directory to /home/quadz/Terraform_Deploy and Terraform Init
+- script: |
+    cd /home/quadz/Terraform_Deploy
+    terraform init
+  displayName: 'Terraform Init'
+
+# Step 2: Terraform Plan using default.tfvars
+- script: |
+    cd /home/quadz/Terraform_Deploy
+    terraform plan -var-file=default.tfvars -out=tfplan
+  displayName: 'Terraform Plan'
+
+# Step 3: Terraform Apply
+- script: |
+    cd /home/quadz/Terraform_Deploy
+    terraform apply -auto-approve tfplan
+  displayName: 'Terraform Apply'
+
+# Step 4: Get VM IP Address
+- script: |
+    cd /home/quadz/Terraform_Deploy
+    terraform refresh -var-file=default.tfvars
+    terraform output vm_ip
+
+    # Attempt to access the output for the VM IP (this assumes you've defined it properly in Terraform)
+    export VM_IP=$(terraform output -raw vm_ip)
+
+    # Debug the VM IP value
+    echo "VM IP: $VM_IP"
+
+    # Set the variable for use in subsequent pipeline steps
+    echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
+    
+  displayName: 'Get VM Public IP'
+
+# Step 5: Wait for VM to be ready (adjust sleep time as necessary)
+- script: |
+    echo "Waiting for VM to be ready..."
+    sleep 10  # Adjust this if necessary for your VM provisioning time
+  displayName: 'Waiting for VM to be Ready'
+
+# Step 6: SSH into VM and Create File
+- script: |
+    echo "Attempting to SSH into the VM..."
+
+    # Verify that the IP is valid
+    if [ -z "$VM_IP" ]; then
+      echo "Error: VM_IP is not set."
+      exit 1
+    fi
+
+    # Print the VM IP for debugging
+    echo "VM IP is: $VM_IP"
+
+    # Check if the IP format is valid (simple regex for IPv4 format)
+    if ! [[ "$VM_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "Error: Invalid IP address format: $VM_IP"
+      exit 1
+    fi
+
+    # Ensure the password and username are set correctly
+    if [ -z "$VM_PASSWORD" ] || [ -z "$VM_USERNAME" ]; then
+      echo "Error: VM_USERNAME or VM_PASSWORD is not set."
+      exit 1
+    fi
+
+    # Install sshpass if not already installed
+    sudo apt-get update && sudo apt-get install -y sshpass
+
+    # Use sshpass to SSH into the VM and create a test file
+    sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "touch /home/$VM_USERNAME/terraform_vm_test.txt"
+
+    echo "File created successfully on the VM"
+    
+  displayName: 'SSH into VM and Create File'
