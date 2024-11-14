@@ -11,75 +11,72 @@ variables:
   - group: TerraformSecrets
 
 steps:
-# Step 1: Checkout code
-- checkout: self
-
-# Step 2: Check if Terraform files have changed
+# Step 1: Change working directory and Terraform Init
 - script: |
-    echo "Checking for changes in Terraform files..."
-    git diff --name-only HEAD~1 HEAD | grep -E '(\.tf$|\.tfvars$)' > changed_files.txt
-    if [ -s changed_files.txt ]; then
-      echo "Terraform files changed. Proceeding with Terraform steps."
-      echo "##vso[task.setvariable variable=terraform_changed]true"
-    else
-      echo "No changes to Terraform files. Skipping Terraform steps."
-      echo "##vso[task.setvariable variable=terraform_changed]false"
-    fi
-  displayName: 'Check for Terraform File Changes'
-
-# Step 3: Terraform Init (runs only if there are changes to Terraform files)
-- script: |
-    if [ "$(terraform_changed)" == "true" ]; then
-      cd /home/quadz/node-hello
-      terraform init
-    else
-      echo "Skipping Terraform Init."
-    fi
+    cd /home/quadz/node-hello
+    terraform init
   displayName: 'Terraform Init'
 
-# Step 4: Terraform Plan using default.tfvars (runs only if there are changes to Terraform files)
+# Step 2: Check if resources already exist
 - script: |
-    if [ "$(terraform_changed)" == "true" ]; then
+    cd /home/quadz/node-hello
+    terraform show > terraform_state.txt || true
+    if grep -q 'vm_ip' terraform_state.txt; then
+      echo "VM already exists. Skipping Terraform Apply."
+      echo "##vso[task.setvariable variable=resourcesExist]true"
+    else
+      echo "VM does not exist. Proceeding with Terraform Apply."
+      echo "##vso[task.setvariable variable=resourcesExist]false"
+    fi
+  displayName: 'Check if Resources Exist'
+
+# Step 3: Terraform Plan (only if resources don't exist)
+- script: |
+    if [ "$(resourcesExist)" == "false" ]; then
       cd /home/quadz/node-hello
       terraform plan -var-file=default.tfvars -out=tfplan
     else
-      echo "Skipping Terraform Plan."
+      echo "Skipping Terraform Plan, resources already exist."
     fi
   displayName: 'Terraform Plan'
 
-# Step 5: Terraform Apply (runs only if there are changes to Terraform files)
+# Step 4: Terraform Apply (only if resources don't exist)
 - script: |
-    if [ "$(terraform_changed)" == "true" ]; then
+    if [ "$(resourcesExist)" == "false" ]; then
       cd /home/quadz/node-hello
       terraform apply -auto-approve tfplan
     else
-      echo "Skipping Terraform Apply."
+      echo "Skipping Terraform Apply, resources already exist."
     fi
   displayName: 'Terraform Apply'
 
-# Step 6: Get VM IP Address (this step should run regardless of Terraform changes)
+# Step 5: Get VM IP Address
 - script: |
     cd /home/quadz/node-hello
     terraform refresh -var-file=default.tfvars
     terraform output vm_ip
     export VM_IP=$(terraform output -raw vm_ip)
+
     echo "VM IP: $VM_IP"
     echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
   displayName: 'Get VM Public IP'
 
-# Step 7: Wait for VM to be ready (always runs)
+# Step 6: Wait for VM to be ready
 - script: |
     echo "Waiting for VM to be ready..."
     sleep 5
   displayName: 'Waiting for VM to be Ready'
 
-# Step 8: SSH into VM and Deploy Node.js Application (always runs)
+# Step 7: SSH into VM and Deploy Node.js Application
 - script: |
     echo "Attempting to SSH into the VM..."
+
     if [ -z "$VM_IP" ]; then
       echo "Error: VM_IP is not set."
       exit 1
     fi
+
+    echo "VM IP is: $VM_IP"
 
     if ! [[ "$VM_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       echo "Error: Invalid IP address format: $VM_IP"
