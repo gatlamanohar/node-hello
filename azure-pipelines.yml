@@ -11,53 +11,75 @@ variables:
   - group: TerraformSecrets
 
 steps:
-# Step 1: Change working directory and Terraform Init
+# Step 1: Checkout code
+- checkout: self
+
+# Step 2: Check if Terraform files have changed
 - script: |
-    cd /home/quadz/node-hello
-    terraform init
+    echo "Checking for changes in Terraform files..."
+    git diff --name-only HEAD~1 HEAD | grep -E '(\.tf$|\.tfvars$)' > changed_files.txt
+    if [ -s changed_files.txt ]; then
+      echo "Terraform files changed. Proceeding with Terraform steps."
+      echo "##vso[task.setvariable variable=terraform_changed]true"
+    else
+      echo "No changes to Terraform files. Skipping Terraform steps."
+      echo "##vso[task.setvariable variable=terraform_changed]false"
+    fi
+  displayName: 'Check for Terraform File Changes'
+
+# Step 3: Terraform Init (runs only if there are changes to Terraform files)
+- script: |
+    if [ "$(terraform_changed)" == "true" ]; then
+      cd /home/quadz/node-hello
+      terraform init
+    else
+      echo "Skipping Terraform Init."
+    fi
   displayName: 'Terraform Init'
 
-# Step 2: Terraform Plan using default.tfvars
+# Step 4: Terraform Plan using default.tfvars (runs only if there are changes to Terraform files)
 - script: |
-    cd /home/quadz/node-hello
-    terraform plan -var-file=default.tfvars -out=tfplan
+    if [ "$(terraform_changed)" == "true" ]; then
+      cd /home/quadz/node-hello
+      terraform plan -var-file=default.tfvars -out=tfplan
+    else
+      echo "Skipping Terraform Plan."
+    fi
   displayName: 'Terraform Plan'
 
-# Step 3: Terraform Apply
+# Step 5: Terraform Apply (runs only if there are changes to Terraform files)
 - script: |
-    cd /home/quadz/node-hello
-    terraform apply -auto-approve tfplan
+    if [ "$(terraform_changed)" == "true" ]; then
+      cd /home/quadz/node-hello
+      terraform apply -auto-approve tfplan
+    else
+      echo "Skipping Terraform Apply."
+    fi
   displayName: 'Terraform Apply'
 
-# Step 4: Get VM IP Address
+# Step 6: Get VM IP Address (this step should run regardless of Terraform changes)
 - script: |
     cd /home/quadz/node-hello
     terraform refresh -var-file=default.tfvars
     terraform output vm_ip
-    # Attempt to access the output for the VM IP (this assumes you've defined it properly in Terraform)
     export VM_IP=$(terraform output -raw vm_ip)
-
-    # Debug the VM IP value
     echo "VM IP: $VM_IP"
     echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
   displayName: 'Get VM Public IP'
 
-# Step 5: Wait for VM to be ready
+# Step 7: Wait for VM to be ready (always runs)
 - script: |
     echo "Waiting for VM to be ready..."
     sleep 5
   displayName: 'Waiting for VM to be Ready'
 
-# Step 6: SSH into VM and Deploy Node.js Application
+# Step 8: SSH into VM and Deploy Node.js Application (always runs)
 - script: |
     echo "Attempting to SSH into the VM..."
-
     if [ -z "$VM_IP" ]; then
       echo "Error: VM_IP is not set."
       exit 1
     fi
-
-    echo "VM IP is: $VM_IP"
 
     if ! [[ "$VM_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       echo "Error: Invalid IP address format: $VM_IP"
