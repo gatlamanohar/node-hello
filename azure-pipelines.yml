@@ -78,11 +78,17 @@ steps:
       sudo apt install -y curl &&
       curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&
       sudo apt install -y nodejs &&
-      cd /home/$VM_USERNAME/node-hello &&
-      npm install &&
-      sudo npm install -g pm2 &&
-      pm2 start npm --name 'app' -- start &&
-      pm2 save && 
+      cd /home/$VM_USERNAME/node-hello && \
+      npm install && \
+      sudo npm install -g pm2 && \
+      if pm2 list | grep -q 'app'; then \
+          echo "App is already running. Restarting the app..."; \
+          pm2 restart app; \
+      else \
+          echo "Starting the app..."; \
+          pm2 start npm --name 'app' -- start; \
+      fi && \
+      pm2 save && \
       pm2 ls
     "
   displayName: 'SSH into VM and Deploy Application'
