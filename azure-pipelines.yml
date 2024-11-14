@@ -32,9 +32,12 @@ steps:
 # Step 4: Get VM IP Address
 - script: |
     cd /home/quadz/node-hello
-    terraform apply -refresh-only -var-file=default.tfvars
-    VM_IP=$(terraform output -raw vm_ip)
+    terraform refresh -var-file=default.tfvars
+    terraform output vm_ip
+    # Attempt to access the output for the VM IP (this assumes you've defined it properly in Terraform)
+    export VM_IP=$(terraform output -raw vm_ip)
 
+    # Debug the VM IP value
     echo "VM IP: $VM_IP"
     echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
   displayName: 'Get VM Public IP'
