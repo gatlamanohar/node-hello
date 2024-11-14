@@ -35,10 +35,7 @@ steps:
     terraform apply -refresh-only -var-file=default.tfvars
     VM_IP=$(terraform output -raw vm_ip)
 
-    # Debug the VM IP value
     echo "VM IP: $VM_IP"
-
-    # Set the variable for use in subsequent pipeline steps
     echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
   displayName: 'Get VM Public IP'
 
@@ -52,7 +49,6 @@ steps:
 - script: |
     echo "Attempting to SSH into the VM..."
 
-    # Verify that the IP is valid
     if [ -z "$VM_IP" ]; then
       echo "Error: VM_IP is not set."
       exit 1
@@ -70,24 +66,17 @@ steps:
       exit 1
     fi
 
-    # Install sshpass if not already installed
     sudo apt-get update && sudo apt-get install -y sshpass
 
-    # Use rsync to transfer your application files to the VM
     sshpass -p "$VM_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
-    # SSH into the VM and set up the application
-    sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" << 'EOF'
-      # Navigate to the application directory
-      cd /home/$VM_USERNAME/node-hello
-
-      # Ensure Node.js is installed
-      curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-      sudo apt install -y nodejs npm
-
-      # Install dependencies and start the application using PM2
-      npm install
-      npm install -g pm2
-      pm2 start npm --name "app" -- start
+    sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
+      cd /home/$VM_USERNAME/node-hello &&
+      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&
+      sudo apt install -y nodejs npm &&
+      npm install &&
+      npm install -g pm2 &&
+      pm2 start npm --name 'app' -- start &&
       pm2 save
-EOF  displayName: 'SSH into VM and Deploy Application'
+    "
+  displayName: 'SSH into VM and Deploy Application'
