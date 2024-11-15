@@ -54,8 +54,8 @@ steps:
 - script: |
     cd /home/quadz/node-hello
     terraform refresh -var-file=default.tfvars
-    terraform output vm_ip
-    export VM_IP=$(terraform output -raw vm_ip)
+    terraform output vm_ips
+    export VM_IP=$(terraform output -raw vm_ips)
 
     echo "VM IP: $VM_IP"
     echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
