@@ -54,14 +54,11 @@ steps:
 - script: |
     cd /home/quadz/node-hello
     terraform refresh -var-file=default.tfvars
-    # terraform output vm_ips
-    # export VM_IP=$(terraform output -raw vm_ips)
-    VM_IPS_JSON=$(terraform output -json vm_ips)
-    VM_IPS=$(echo $VM_IPS_JSON | jq -r '.[]' | tr '\n' ',')
-    echo "VM IPs: $VM_IPS"
-    echo "##vso[task.setvariable variable=VM_IPS]$VM_IPS"
-    # echo "VM IP: $VM_IP"
-    # echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
+    terraform output vm_ip
+    export VM_IP=$(terraform output -raw vm_ip)
+
+    echo "VM IP: $VM_IP"
+    echo "##vso[task.setvariable variable=VM_IP]$VM_IP"
   displayName: 'Get VM Public IP'
 
 # Step 6: Wait for VM to be ready
