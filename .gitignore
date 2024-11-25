@@ -2,6 +2,7 @@
 node_modules/
 dist/
 android
+package-lock.json
 # Local .terraform directories
 **/.terraform/*
 
