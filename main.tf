@@ -45,31 +45,30 @@ resource "null_resource" "nginx_setup" {
     private_key = file("~/.ssh/id_rsa")
     # password = each.value.admin_password
   }
+
+  # Provisioners to copy necessary files to the VM
   provisioner "file" {
     source      = "./deploy.sh"  # Path to your shell script
     destination = "/tmp/deploy.sh"  # Destination path on the VM
   }
-  provisioner "remote-exec" {
-    inline = [ 
-      "sudo chmod +x /tmp/deploy.sh",
-      "bash /tmp/deploy.sh"
-     ]
+
+  provisioner "file" {
+    source      = "./ssl.sh"  # Path to your SSL script
+    destination = "/home/$VM_USERNAME/node-hello/ssl.sh"  # Destination path in the node-hello directory
   }
-  # Provisioner to ensure the node-hello directory exists
-  provisioner "remote-exec" {
-    inline = [
-      "mkdir -p /home/$VM_USERNAME/node-hello",  # Ensure the directory exists
-    ]
-  }
-  # Provisioner to copy the application files (this will include the node app, config, etc.)
+
   provisioner "file" {
     source      = "./"  # Path to your application files (node app, config, etc.)
     destination = "/home/$VM_USERNAME/node-hello"  # Destination path in the node-hello directory
   }
-  # Provisioner to deploy the application
+
+  # Combined remote-exec provisioner to run everything
   provisioner "remote-exec" {
     inline = [
+      "mkdir -p /home/$VM_USERNAME/node-hello",  # Ensure the directory exists
       "echo 'Connected to the VM successfully!'",
+      "sudo chmod +x /tmp/deploy.sh",
+      "bash /tmp/deploy.sh",
       "cd /home/$VM_USERNAME/node-hello && npm install",  # Install node modules
       "sudo npm install -g pm2",  # Install PM2 globally
       "if pm2 show 'app' > /dev/null; then",
@@ -80,27 +79,15 @@ resource "null_resource" "nginx_setup" {
       "  pm2 start npm --name 'app' -- start",  # Start the app with PM2
       "fi",
       "pm2 save",  # Save the PM2 process list
-    ]
-  }
-
-  # Provisioner to copy the ssl.sh script to the VM after the app deployment
-  provisioner "file" {
-    source      = "./ssl.sh"  # Path to your SSL script
-    destination = "/home/$VM_USERNAME/node-hello/ssl.sh"  # Destination path in the node-hello directory
-  }
-
-  # Provisioner to run the ssl.sh script after the application has been deployed
-  provisioner "remote-exec" {
-    inline = [
       "echo 'Running SSL setup...'",
       "sudo chmod +x /home/$VM_USERNAME/node-hello/ssl.sh",  # Ensure the script is executable
-      "bash /home/$VM_USERNAME/node-hello/ssl.sh ${var.email} ${output.domain} ${each.value.public_ip}"  # Pass the necessary variables to the script
+      "bash /home/$VM_USERNAME/node-hello/ssl.sh ${var.email} ${azurerm_public_ip.tf-Pub[0].ip_address}"  # Pass the necessary variables to the script
     ]
   }
-
 
   # Use triggers to ensure it runs when necessary
   triggers = {
-    always_run = "${timestamp()}" # Forces re-execution
+    always_run = "${timestamp()}"  # Forces re-execution
   }
 }
+
