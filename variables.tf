@@ -27,7 +27,7 @@ variable "vm_info" {
     offer     = string
     publisher = string
     version   = string
-    password  = string
+    # password  = string
   }))
 
 }
