@@ -50,15 +50,14 @@ resource "null_resource" "nginx_setup" {
     source      = "./deploy.sh"  # Path to your shell script
     destination = "/tmp/deploy.sh"  # Destination path on the VM
   }
-  provisioner "file" {
-    source      = "./ssl.sh"  # Path to your shell script
-    destination = "/home/$VM_USERNAME/node-hello/ssl.sh"  # Destination path on the VM
-  }
+  # provisioner "file" {
+  #   source      = "./ssl.sh"  # Path to your shell script
+  #   destination = "/home/$VM_USERNAME/node-hello/ssl.sh"  # Destination path on the VM
+  # }
 
   provisioner "remote-exec" {
     inline = [ 
       "sudo chmod +x /tmp/deploy.sh",
-      "sudo chmod +x /home/$VM_USERNAME/node-hello/ssl.sh",
       "bash /tmp/deploy.sh"
      ]
   }
