@@ -109,7 +109,8 @@ steps:
     # ls -l ~/.ssh/id_rsa
 
     # Sync application files to the VM
-    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
+    # rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
+    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./https.sh "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
     # SSH into the VM and deploy the application
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
