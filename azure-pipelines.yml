@@ -98,23 +98,36 @@ steps:
       echo "Error: VM_USERNAME or VM_PASSWORD is not set."
       exit 1
     fi
-    
+
     # Save the private key
-    # echo -e "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     chmod 600 ~/.ssh/id_rsa
 
-    # Debug the private key file
+    # Debugging the private key (optional, can be commented out for production)
     # echo "Debugging SSH Key:"
     # cat ~/.ssh/id_rsa
     # ls -l ~/.ssh/id_rsa
 
-    # SSH into the VM
+    # Sync application files to the VM
+    sshpass -e rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
+
+    # SSH into the VM and deploy the application
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
-    echo 'Connected to the VM successfully!'
-    sudo systemctl status nginx.service
+      echo 'Connected to the VM successfully!'
+      cd /home/$VM_USERNAME/node-hello && \
+      npm install && \
+      sudo npm install -g pm2 && \
+      if pm2 show 'app' > /dev/null; then
+          echo 'App is already running. Restarting...'
+          pm2 restart 'app'
+      else
+          echo 'App is not running. Starting the app...'
+          pm2 start npm --name 'app' -- start
+      fi && \
+      pm2 save
     "
-    
   displayName: 'SSH into VM and Deploy Application'
+
 
 # # Step 7: SSH into VM and Deploy Node.js Application
 # - script: |
