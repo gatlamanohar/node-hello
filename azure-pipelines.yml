@@ -127,7 +127,7 @@ steps:
       fi && \
       pm2 save
       sudo chmod +x /tmp/https.sh
-      bash /tmp/https.sh"
+      bash /tmp/https.sh
     "
   displayName: 'SSH into VM and Deploy Application'
 
