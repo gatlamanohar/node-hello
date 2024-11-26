@@ -1,44 +1,65 @@
 ## Create a resource group
 resource "azurerm_resource_group" "tf-rg" {
-  name     = "${var.prefix}-terraform-rg"
-  location =  var.region.location
+  name     = "tf-rg"
+  location = var.region.location
 }
 
 ## Create a virtual machine
 resource "azurerm_linux_virtual_machine" "tf-vm" {
-  count               = var.vm_list
-  name                = "${var.prefix}-VM-${count.index + 1}"
-  resource_group_name = azurerm_resource_group.tf-rg.name
-  location            = var.region.location
-  size                = var.vm_info.size
-  admin_username      = var.vm_info.username
-  admin_password      = var.vm_info.password
-  disable_password_authentication = false
-  source_image_reference {
-    publisher = var.vm_info.publisher
-    offer     = var.vm_info.offer
-    sku       = var.vm_info.sku
-    version   = var.vm_info.version
-  }
+  for_each                        = var.vm_info
+  name                            = "tf-vm"
+  resource_group_name             = azurerm_resource_group.tf-rg.name
+  location                        = var.region.location
+  size                            = each.value.size
+  admin_username                  = each.value.username
+  # admin_password                  = each.value.password
+  network_interface_ids           = [azurerm_network_interface.tf-nic[0].id]
+  disable_password_authentication = true
+
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
-  network_interface_ids = [azurerm_network_interface.tf-nic[count.index].id]
-  # depends_on            = [azurerm_network_interface.tf-nic]
+  source_image_reference {
+    publisher = each.value.publisher
+    offer     = each.value.offer
+    sku       = each.value.sku
+    version   = each.value.version
+  }
+  # depends_on = [azurerm_network_interface.tf-nic]
 
-  # connection {
-  #   type     = "ssh"
-  #   user     = var.vm_info.username
-  #   host     = self.public_ip_address
-  #   password = var.vm_info.password
-  # }
-
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "sudo apt update",
-  #     "sudo apt install nginx -y"
-  #   ]
-  # }
+  admin_ssh_key {
+    username   = each.value.username
+    public_key = file("~/.ssh/id_rsa.pub")
+  }
 }
+# Null resource for provisioning
+resource "null_resource" "nginx_setup" {
+  for_each = azurerm_linux_virtual_machine.tf-vm
 
+  # Common connection configuration
+  connection {
+    type        = "ssh"
+    user        = each.value.admin_username
+    host        = azurerm_public_ip.tf-Pub[0].ip_address
+    private_key = file("~/.ssh/id_rsa")
+    # password = each.value.admin_password
+  }
+
+  provisioner "file" {
+    source      = "./deploy.sh"  # Path to your shell script
+    destination = "/tmp/deploy.sh"  # Destination path on the VM
+  }
+
+  provisioner "remote-exec" {
+    inline = [ 
+      "sudo chmod +x /tmp/deploy.sh",
+      "bash /tmp/deploy.sh"
+     ]
+  }
+
+  # Use triggers to ensure it runs when necessary
+  triggers = {
+    always_run = "${timestamp()}" # Forces re-execution
+  }
+}

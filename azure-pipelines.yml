@@ -1,5 +1,9 @@
-trigger:
-  - main
+## No trigger
+trigger: none
+
+## trigger on specific branch
+# trigger:
+#     - main
 
 pool:
   name: 'Default'
@@ -11,42 +15,49 @@ variables:
   - group: TerraformSecrets
 
 steps:
+
+# Step 0: Change working directory to /home/quadz/node-hello and git pull
+- script: |
+    cd /home/quadz/node-hello
+    git pull origin ssh
+  displayName: 'git pull'
+
 # Step 1: Change working directory and Terraform Init
 - script: |
     cd /home/quadz/node-hello
     terraform init
   displayName: 'Terraform Init'
 
-# Step 2: Check if resources already exist
+# Step 2: Check if resources already exist and need updates
 - script: |
     cd /home/quadz/node-hello
-    terraform show > terraform_state.txt || true
-    if grep -q 'vm_ip' terraform_state.txt; then
-      echo "VM already exists. Skipping Terraform Apply."
-      echo "##vso[task.setvariable variable=resourcesExist]true"
+    terraform plan -var-file=default.tfvars -out=tfplan
+    if grep -q "No changes. Infrastructure is up-to-date." tfplan; then
+      echo "Resources are up-to-date. Skipping Apply."
+      echo "##vso[task.setvariable variable=resourcesNeedUpdate]false"
     else
-      echo "VM does not exist. Proceeding with Terraform Apply."
-      echo "##vso[task.setvariable variable=resourcesExist]false"
+      echo "Resources need to be updated. Proceeding with Apply."
+      echo "##vso[task.setvariable variable=resourcesNeedUpdate]true"
     fi
-  displayName: 'Check if Resources Exist'
+  displayName: 'Check Resource Changes'
 
-# Step 3: Terraform Plan (only if resources don't exist)
+# Step 3: Terraform Plan (only if resources need updates)
 - script: |
-    if [ "$(resourcesExist)" == "false" ]; then
+    if [ "$(resourcesNeedUpdate)" == "true" ]; then
       cd /home/quadz/node-hello
       terraform plan -var-file=default.tfvars -out=tfplan
     else
-      echo "Skipping Terraform Plan, resources already exist."
+      echo "Skipping Terraform Plan, resources are up-to-date."
     fi
   displayName: 'Terraform Plan'
 
-# Step 4: Terraform Apply (only if resources don't exist)
+# Step 4: Terraform Apply (only if resources need updates)
 - script: |
-    if [ "$(resourcesExist)" == "false" ]; then
+    if [ "$(resourcesNeedUpdate)" == "true" ]; then
       cd /home/quadz/node-hello
       terraform apply -auto-approve tfplan
     else
-      echo "Skipping Terraform Apply, resources already exist."
+      echo "Skipping Terraform Apply, resources are up-to-date."
     fi
   displayName: 'Terraform Apply'
 
@@ -93,10 +104,6 @@ steps:
     sshpass -p "$VM_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
     sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
-      sudo apt update && 
-      sudo apt install -y curl &&
-      curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&
-      sudo apt install -y nodejs &&
       cd /home/$VM_USERNAME/node-hello && \
       npm install && \
       sudo npm install -g pm2 && \
