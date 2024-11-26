@@ -109,8 +109,7 @@ steps:
     # ls -l ~/.ssh/id_rsa
 
     # Sync application files to the VM
-    # rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
-    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./https.sh "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
+    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
     # SSH into the VM and deploy the application
     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
@@ -126,8 +125,8 @@ steps:
           pm2 start npm --name 'app' -- start
       fi && \
       pm2 save
-      sudo chmod +x /home/$VM_USERNAME/node-hello/https.sh
-      bash /home/$VM_USERNAME/node-hello/https.sh"
+      sudo chmod +x /tmp/https.sh
+      bash /tmp/https.sh"
     "
   displayName: 'SSH into VM and Deploy Application'
 

@@ -52,6 +52,10 @@ provisioner "file" {
   destination = "/tmp/deploy.sh"  # Destination path on the VM
 }
 
+provisioner "file" {
+  source      = "./https.sh"  # Path to your shell script
+  destination = "/tmp/https.sh"  # Destination path on the VM
+}
 # Combined remote-exec provisioner to run everything
 provisioner "remote-exec" {
   inline = [
