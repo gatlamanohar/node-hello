@@ -1,9 +1,9 @@
 ## No trigger
-trigger: none
+# trigger: none
 
 ## trigger on specific branch
-# trigger:
-#     - main
+trigger:
+    - ssh
 
 pool:
   name: 'Default'
@@ -98,26 +98,66 @@ steps:
       echo "Error: VM_USERNAME or VM_PASSWORD is not set."
       exit 1
     fi
+    
+    # Save the private key
+    # echo -e "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    chmod 600 ~/.ssh/id_rsa
 
-    sudo apt-get update && sudo apt-get install -y sshpass
+    # Debug the private key file
+    # echo "Debugging SSH Key:"
+    # cat ~/.ssh/id_rsa
+    # ls -l ~/.ssh/id_rsa
 
-    sshpass -p "$VM_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
-
-    sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
-      cd /home/$VM_USERNAME/node-hello && \
-      npm install && \
-      sudo npm install -g pm2 && \
-      # Check if the application is running
-      if pm2 show 'app' > /dev/null; then
-          # If the app is running, restart it
-          echo "App is already running. Restarting..."
-          pm2 restart 'app'
-      else
-          # If the app is not running, start it
-          echo "App is not running. Starting the app..."
-          pm2 start npm --name 'app' -- start
-      fi && \
-      pm2 save && \
-      pm2 ls
+    # SSH into the VM
+    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
+    echo 'Connected to the VM successfully!'
+    sudo systemctl status nginx.service
     "
+    
   displayName: 'SSH into VM and Deploy Application'
+
+# # Step 7: SSH into VM and Deploy Node.js Application
+# - script: |
+#     echo "Attempting to SSH into the VM..."
+
+#     if [ -z "$VM_IP" ]; then
+#       echo "Error: VM_IP is not set."
+#       exit 1
+#     fi
+
+#     echo "VM IP is: $VM_IP"
+
+#     if ! [[ "$VM_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+#       echo "Error: Invalid IP address format: $VM_IP"
+#       exit 1
+#     fi
+
+#     if [ -z "$VM_USERNAME" ] || [ -z "$VM_PASSWORD" ]; then
+#       echo "Error: VM_USERNAME or VM_PASSWORD is not set."
+#       exit 1
+#     fi
+
+#     sudo apt-get update && sudo apt-get install -y sshpass
+
+#     sshpass -p "$VM_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
+
+#     sshpass -p "$VM_PASSWORD" ssh -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
+#       cd /home/$VM_USERNAME/node-hello && \
+#       npm install && \
+#       sudo npm install -g pm2 && \
+#       # Check if the application is running
+#       if pm2 show 'app' > /dev/null; then
+#           # If the app is running, restart it
+#           echo "App is already running. Restarting..."
+#           pm2 restart 'app'
+#       else
+#           # If the app is not running, start it
+#           echo "App is not running. Starting the app..."
+#           pm2 start npm --name 'app' -- start
+#       fi && \
+#       pm2 save && \
+#       pm2 ls
+#     "
+#   displayName: 'SSH into VM and Deploy Application'
+
+
