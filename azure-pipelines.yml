@@ -78,58 +78,58 @@ steps:
     sleep 5
   displayName: 'Waiting for VM to be Ready'
 
-# Step 7: SSH into VM and Deploy Node.js Application
-- script: |
-    echo "Attempting to SSH into the VM..."
+# # Step 7: SSH into VM and Deploy Node.js Application
+# - script: |
+#     echo "Attempting to SSH into the VM..."
 
-    if [ -z "$VM_IP" ]; then
-      echo "Error: VM_IP is not set."
-      exit 1
-    fi
+#     if [ -z "$VM_IP" ]; then
+#       echo "Error: VM_IP is not set."
+#       exit 1
+#     fi
 
-    echo "VM IP is: $VM_IP"
+#     echo "VM IP is: $VM_IP"
 
-    if ! [[ "$VM_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      echo "Error: Invalid IP address format: $VM_IP"
-      exit 1
-    fi
+#     if ! [[ "$VM_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+#       echo "Error: Invalid IP address format: $VM_IP"
+#       exit 1
+#     fi
 
-    if [ -z "$VM_USERNAME" ] || [ -z "$VM_PASSWORD" ]; then
-      echo "Error: VM_USERNAME or VM_PASSWORD is not set."
-      exit 1
-    fi
+#     if [ -z "$VM_USERNAME" ] || [ -z "$VM_PASSWORD" ]; then
+#       echo "Error: VM_USERNAME or VM_PASSWORD is not set."
+#       exit 1
+#     fi
 
-    # Save the private key
-    # echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    chmod 600 ~/.ssh/id_rsa
+#     # Save the private key
+#     # echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+#     chmod 600 ~/.ssh/id_rsa
 
-    # Debugging the private key (optional, can be commented out for production)
-    # echo "Debugging SSH Key:"
-    # cat ~/.ssh/id_rsa
-    # ls -l ~/.ssh/id_rsa
+#     # Debugging the private key (optional, can be commented out for production)
+#     # echo "Debugging SSH Key:"
+#     # cat ~/.ssh/id_rsa
+#     # ls -l ~/.ssh/id_rsa
 
-    # Sync application files to the VM
-    rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
+#     # Sync application files to the VM
+#     rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ "$VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello"
 
-    # SSH into the VM and deploy the application
-    ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
-      echo 'Connected to the VM successfully!'
-      cd /home/$VM_USERNAME/node-hello && \
-      npm install && \
-      sudo npm install -g pm2 && \
-      if pm2 show 'app' > /dev/null; then
-          echo 'App is already running. Restarting...'
-          pm2 restart 'app'
-      else
-          echo 'App is not running. Starting the app...'
-          pm2 start npm --name 'app' -- start
-      fi && \
-      pm2 save
-      sudo chmod +x ssl.sh
-      bash ssl.sh "${var.email}" "${output.domain}" "${var.server_ip}"
+#     # SSH into the VM and deploy the application
+#     ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$VM_USERNAME@$VM_IP" "
+#       echo 'Connected to the VM successfully!'
+#       cd /home/$VM_USERNAME/node-hello && \
+#       npm install && \
+#       sudo npm install -g pm2 && \
+#       if pm2 show 'app' > /dev/null; then
+#           echo 'App is already running. Restarting...'
+#           pm2 restart 'app'
+#       else
+#           echo 'App is not running. Starting the app...'
+#           pm2 start npm --name 'app' -- start
+#       fi && \
+#       pm2 save
+#       sudo chmod +x ssl.sh
+#       bash ssl.sh "${var.email}" "${output.domain}" "${var.server_ip}"
 
-    "
-  displayName: 'SSH into VM and Deploy Application'
+#     "
+#   displayName: 'SSH into VM and Deploy Application'
 
 
 # # Step 7: SSH into VM and Deploy Node.js Application

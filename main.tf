@@ -46,44 +46,50 @@ resource "null_resource" "nginx_setup" {
     # password = each.value.admin_password
   }
 
-  # Provisioners to copy necessary files to the VM
-  provisioner "file" {
-    source      = "./deploy.sh"  # Path to your shell script
-    destination = "/tmp/deploy.sh"  # Destination path on the VM
-  }
+# Provisioners to copy necessary files to the VM
+provisioner "file" {
+  source      = "./deploy.sh"  # Path to your shell script
+  destination = "/tmp/deploy.sh"  # Destination path on the VM
+}
 
-  provisioner "file" {
-    source      = "./ssl.sh"  # Path to your SSL script
-    destination = "/home/$VM_USERNAME/node-hello/ssl.sh"  # Destination path in the node-hello directory
-  }
+# Combined remote-exec provisioner to run everything
+provisioner "remote-exec" {
+  inline = [
+    # Create the node-hello directory first
+    "echo 'Creating the node-hello directory...'",
+    "mkdir -p /home/$VM_USERNAME/node-hello",  # Ensure the directory exists
 
-  provisioner "file" {
-    source      = "./"  # Path to your application files (node app, config, etc.)
-    destination = "/home/$VM_USERNAME/node-hello"  # Destination path in the node-hello directory
-  }
+    # Execute deploy.sh script first
+    "echo 'Running deploy script...'",
+    "sudo chmod +x /tmp/deploy.sh",
+    "bash /tmp/deploy.sh",  # Execute the deploy script
 
-  # Combined remote-exec provisioner to run everything
-  provisioner "remote-exec" {
-    inline = [
-      "mkdir -p /home/$VM_USERNAME/node-hello",  # Ensure the directory exists
-      "echo 'Connected to the VM successfully!'",
-      "sudo chmod +x /tmp/deploy.sh",
-      "bash /tmp/deploy.sh",
-      "cd /home/$VM_USERNAME/node-hello && npm install",  # Install node modules
-      "sudo npm install -g pm2",  # Install PM2 globally
-      "if pm2 show 'app' > /dev/null; then",
-      "  echo 'App is already running. Restarting...'",
-      "  pm2 restart 'app'",
-      "else",
-      "  echo 'App is not running. Starting the app...'",
-      "  pm2 start npm --name 'app' -- start",  # Start the app with PM2
-      "fi",
-      "pm2 save",  # Save the PM2 process list
-      "echo 'Running SSL setup...'",
-      "sudo chmod +x /home/$VM_USERNAME/node-hello/ssl.sh",  # Ensure the script is executable
-      "bash /home/$VM_USERNAME/node-hello/ssl.sh ${var.email} ${azurerm_public_ip.tf-Pub[0].ip_address}"  # Pass the necessary variables to the script
-    ]
-  }
+    # Sync application files to the VM using rsync over SSH
+    "echo 'Syncing application files to the VM...'",
+    "rsync -avz -e 'ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa' ./ $VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello",
+
+    # Deploy the application using npm and pm2
+    "echo 'Installing node modules...'",
+    "cd /home/$VM_USERNAME/node-hello && npm install",  # Install node modules
+    "echo 'Installing PM2 globally...'",
+    "sudo npm install -g pm2",  # Install PM2 globally
+    "echo 'Checking if app is already running...'",
+    "if pm2 show 'app' > /dev/null; then",
+    "  echo 'App is already running. Restarting...'",
+    "  pm2 restart 'app'",  # Restart the app if already running
+    "else",
+    "  echo 'App is not running. Starting the app...'",
+    "  pm2 start npm --name 'app' -- start",  # Start the app with PM2
+    "fi",
+    "echo 'Saving PM2 process list...'",
+    "pm2 save",  # Save the PM2 process list
+
+    # Finally, execute the https.sh script for SSL configuration
+    "echo 'Running SSL setup...'",
+    "sudo chmod +x /home/$VM_USERNAME/node-hello/https.sh",  # Ensure the https.sh script is executable
+    "bash /home/$VM_USERNAME/node-hello/https.sh"  # Execute the https.sh script
+  ]
+}
 
   # Use triggers to ensure it runs when necessary
   triggers = {

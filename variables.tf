@@ -99,12 +99,12 @@ variable "dns_zone" {
   })
 }
 
-variable "email" {
-  description = "The email address for certbot"
-  type        = string
-}
+# variable "email" {
+#   description = "The email address for certbot"
+#   type        = string
+# }
 
-variable "server" {
-  description = "The server address or IP to proxy to"
-  type        = string
-}
+# variable "server" {
+#   description = "The server address or IP to proxy to"
+#   type        = string
+# }
