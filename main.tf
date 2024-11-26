@@ -55,7 +55,7 @@ provisioner "file" {
 # Combined remote-exec provisioner to run everything
 provisioner "remote-exec" {
   inline = [
-    # Create the node-hello directory first
+    # Ensure the node-hello directory exists
     "echo 'Creating the node-hello directory...'",
     "mkdir -p /home/$VM_USERNAME/node-hello",  # Ensure the directory exists
 
@@ -66,7 +66,7 @@ provisioner "remote-exec" {
 
     # Sync application files to the VM using rsync over SSH
     "echo 'Syncing application files to the VM...'",
-    "rsync -avz -e 'ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa' ./ $VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello",
+    "rsync -avz -e 'ssh -o StrictHostKeyChecking=no -i /home/quadz/.ssh/id_rsa' ./ $VM_USERNAME@$VM_IP:/home/$VM_USERNAME/node-hello",
 
     # Deploy the application using npm and pm2
     "echo 'Installing node modules...'",
@@ -90,6 +90,7 @@ provisioner "remote-exec" {
     "bash /home/$VM_USERNAME/node-hello/https.sh"  # Execute the https.sh script
   ]
 }
+
 
   # Use triggers to ensure it runs when necessary
   triggers = {
