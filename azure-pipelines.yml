@@ -125,6 +125,9 @@ steps:
           pm2 start npm --name 'app' -- start
       fi && \
       pm2 save
+      sudo chmod +x ssl.sh
+      bash ssl.sh "${var.email}" "${output.domain}" "${var.server_ip}"
+
     "
   displayName: 'SSH into VM and Deploy Application'
 

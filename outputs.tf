@@ -11,6 +11,6 @@ output "vm" {
   value = azurerm_linux_virtual_machine.tf-vm["vm1"].private_ip_address
 }
 
-output "subdomain" {
+output "domain" {
   value = "${azurerm_dns_a_record.A_record.name}.${data.azurerm_dns_zone.zone_name.name}"
 }
