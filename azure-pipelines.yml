@@ -100,7 +100,7 @@ steps:
     fi
 
     # Save the private key
-    echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    # echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     chmod 600 ~/.ssh/id_rsa
 
     # Debugging the private key (optional, can be commented out for production)
