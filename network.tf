@@ -28,7 +28,7 @@ resource "azurerm_public_ip" "tf-Pub" {
     Environment = "Dev"
     CreatedBy   = "Terraform"
   }
-  # depends_on = [azurerm_resource_group.tf-rg]
+  depends_on = [azurerm_network_interface.tf-nic]
 }
 ## Create network interface
 resource "azurerm_network_interface" "tf-nic" {
