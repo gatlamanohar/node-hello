@@ -1,9 +1,9 @@
 ## No trigger
-# trigger: none
+trigger: none
 
 ## trigger on specific branch
-trigger:
-    - ssh
+# trigger:
+#     - ssh
 
 pool:
   name: 'Default'
