@@ -50,7 +50,7 @@ resource "azurerm_network_security_group" "nsg" {
   name                = var.nsg_info.name
   resource_group_name = azurerm_resource_group.tf-rg.name
   location            = var.region.location
-  # depends_on          = [azurerm_resource_group.tf-rg, azurerm_network_interface.tf-nic, azurerm_virtual_network.tf-vnet]
+  depends_on          = [azurerm_network_interface.tf-nic]
 }
 
 ## Create network security rule
